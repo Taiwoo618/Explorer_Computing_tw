@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-tab1, tab2 = st.tabs(["Tab 1", "Tab 2"])
+tab1, tab2 = st.tabs(["자기소개", "시간표"])
 
 with tab1:
     st.title("나의 소개 페이지")
