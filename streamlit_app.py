@@ -1,220 +1,217 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.alert import Alert
+import time
 import streamlit as st
-import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
-import plotly.express as px
+import numpy as np
+from matplotlib import rc, font_manager
+import pandas as pd
+from datetime import datetime
 
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score
+def bestseller_anal():
+    options = webdriver.ChromeOptions()
+    options.add_argument('user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"')
 
-# 예: 맑은 고딕으로 설정
-matplotlib.rcParams['font.family'] = 'Malgun Gothic'
+    driver = webdriver.Chrome(options=options)
 
-# 음수 표시 깨짐 방지
-matplotlib.rcParams['axes.unicode_minus'] = False
+    driver.get("https://www.yes24.com/product/category/bestseller?CategoryNumber=001&sumgb=06")
+    driver.implicitly_wait(3)
 
-def cars_home():
-    #자동차 연비 대시보드의 주요 목적과 활용 포인트를 소개한다.
-    st.title("🚗 자동차 연비 분석 대시보드")
+    prices = []
+    genres = []
+    book_id = 0
+    crawl_date = datetime.now().strftime("%Y-%m-%d")
+    for j in range(1, 10):
+        
+        for i in range(1, 25):
+            try:
+                xpath = f'//*[@id="yesBestList"]/li[{i}]/div/div[2]/div[2]/a[1]'
+                driver.find_element(By.XPATH, value=xpath).click()
+                time.sleep(0.3)
+                # 나이 제한 상품 Alert 처리
+                alert = Alert(driver)
+                alert.accept()
+                print(f"{i}번 도서: 나이제한 상품 → 스킵")
+                driver.back()
+                continue
+            except:
+                pass
+            # 가격 정보 수집
+            price= driver.find_element(
+                By.XPATH,
+                "//tr[th[normalize-space(text())='정가']]//em[@class='yes_m']"
+            ).text.strip()
+            price = price.replace(",", "").replace("원", "").strip()
+            price = int(price)
+            # 장르 정보 수집
+            # ul 전체 가져오기
+            ul = driver.find_element(By.XPATH, '//*[@id="infoset_goodsCate"]/div[2]/dl/dd/ul')
+            # li 목록
+            li_list = ul.find_elements(By.TAG_NAME, "li")
 
-    st.write("""
-    이 대시보드는 자동차 성능 데이터를 기반으로  
-    **대륙별 평균 연비, 마력(hp)과 연비(mpg) 관계, 차량 무게와 연비 관계, 연도별 평균 연비 변화**등을 시각화합니다.
-    """)
+            b_genres = []
+            for li in li_list:
+                a_tags = li.find_elements(By.TAG_NAME, "a")
+            
+                if len(a_tags) >= 2 and a_tags[0].text.strip() == '국내도서':
+                    b_genre = a_tags[1].text.strip()
+                    if b_genre not in b_genres:
+                        b_genres.append(b_genre)
 
-    st.markdown("---")
+            prices.append({
+                "book_id": book_id,
+                "price": price,
+                "crawl_date": crawl_date
+            })
+            for genre in b_genres:
+                genres.append({
+                    "book_id": book_id,
+                    "genre": genre,
+                    "crawl_date": crawl_date
+                })
 
-    st.subheader("📊 주요 기능")
-    st.markdown("""
-    1. **탐색적 자료분석 (EDA)**  
-        - 제조 대륙별 평균 연비 비교, 마력과 차량 무게 대비 연비 분포, 연도별 연비 변화 등을 시각화합니다.  
-        - 그래프를 통해 데이터를 직관적으로 확인할 수 있습니다.  
+            #print(j, i, b_genres)
+            book_id += 1
+            driver.back()
+            time.sleep(0.3)
 
-    2. **연비 예측**  
-        - 차량의 제원(`hp`, `weightlbs`, `cubicinches`, `cylinders`)을 입력하면  
-        머신러닝 모델이 예상 연비를 예측합니다.  
-
-    3. **실시간 인터랙티브 시각화**  
-        - 슬라이더, 드롭다운 등 Streamlit 위젯을 활용하여  
-        조건을 바꾸면 그래프가 **즉시 업데이트**됩니다.
-    """)
-
-    st.markdown("---")
-
-    st.subheader("💡 활용 포인트")
-    st.info("""
-    - 데이터를 시각화하며 **연비에 영향을 주는 변수**를 탐색할 수 있습니다.  
-    - 사용자가 직접 조건을 조정하면서 **예상 연비 모델의 반응**을 실시간으로 확인할 수 있습니다.  
-    - Streamlit을 활용해 **웹 기반 데이터 분석 대시보드** 제작을 체험할 수 있습니다.
-    """)
-
-    st.markdown("---")
-
-    st.caption("📁 데이터 출처: Kaggle - Auto MPG Dataset")
-
-def cars_EDA(df):
-    #연비(mpg)와 주요 변수 간의 관계, 대륙별 특성, 연도별 변화 등을 시각적으로 분석한다.
-    st.title("🔍 자동차 연비 분석 (EDA)")
-
-    st.write("""
-    이 탭에서는 자동차 성능 데이터를 활용하여  
-    **연비(mpg)와 주요 변수들 간의 관계, 대륙별 특성, 연도별 변화** 등을 탐색합니다.
-    """)
-
-    # 데이터 미리보기
-    st.subheader("📄 데이터 미리보기")
-    st.dataframe(df.head())
-
-    st.markdown("---")
-
-    st.subheader("🌏 대륙별 평균 연비")
-    continent_mpg = df.groupby("continent")["mpg"].mean().reset_index()
-    fig1 = px.bar(
-        continent_mpg,
-        x="continent",
-        y="mpg",
-        color="mpg",
-        title="대륙별 평균 연비",
-        color_continuous_scale="Greens"
-    )
-    st.plotly_chart(fig1, width='stretch') 
+        if j < 11:
+            driver.find_element(By.XPATH, f'//*[@id="bestContentsWrap"]/div[6]/div/div/div/a[{j}]').click()
+            time.sleep(0.3)
     
-    st.markdown("---")
+    df_prices = pd.DataFrame(prices)
+    df_genres = pd.DataFrame(genres)
 
-    st.info("""
-    💡 **분석 포인트**
-    - 대륙별로 차량 특성이 다르며, 미국 차량은 비교적 연비가 낮고 일본 차량은 연비가 높은 편입니다.  
-    """)
+    df_prices.to_excel("/data/yes24_best_prices.xlsx", index=False)
+    df_genres.to_excel("/data/yes24_best_genres.xlsx", index=False)
 
-    st.markdown("---")
-    # 마력과 연비 관계 산점도
-    st.subheader("⚡ 마력(hp)과 연비(mpg) 관계")
-    fig2 = px.scatter(
-        df,
-        x="hp",
-        y="mpg",
-        color="continent",
-        size="weightlbs",
-        hover_name="continent",
-        title="마력 대비 연비 산점도"
-    )
+# 폰트 설정
+font_path = "C:/Windows/Fonts/malgun.ttf"  # Windows 기준
+font_name = font_manager.FontProperties(fname=font_path).get_name()
+rc('font', family=font_name)
 
-    st.plotly_chart(fig2, width='stretch')
+# Streamlit 기본 설정
+st.set_page_config(layout="wide")
+st.title("YES24 베스트셀러 장르 및 가격 분석")
 
-    st.markdown("---")
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
 
-    st.info("""
-    💡 **분석 포인트**
-    - 마력이 높을수록 연비가 낮아지는 경향이 있습니다.""")
+st.markdown("""
+본 웹 앱은 Selenium을 이용해 수집한 YES24 국내도서 베스트셀러 데이터를 바탕으로 장르와 가격의 분포를 시각적으로 분석한다.
+하단 [분석]버튼을 통해 실시간으로 크롤링을 진행할 수 있다. 8~10분 정도 소요된다.
+""")
 
-    st.markdown("---")
-    # 무게와 연비 관계 산점도
-    st.subheader("⚡ 차량 무게(weightlbs)과 연비(mpg) 관계")
-    fig3 = px.scatter(
-        df,
-        x="weightlbs",
-        y="mpg",
-        color="continent",
-        size="hp",
-        hover_name="continent",
-        title="차량 무게 대비 연비 산점도"
-    )
+analysis = st.button("분석")
+if analysis:
+    with st.spinner("크롤링 중입니다. 잠시만 기다려 주세요..."):
+        bestseller_anal()
+        st.session_state.data_loaded = True
+    st.success("크롤링 완료!")
 
-    st.plotly_chart(fig3, width='stretch')
 
-    st.markdown("---")
+# 데이터 
+try:
+    df_prices = pd.read_excel("/data/yes24_best_prices.xlsx")
+    df_genres = pd.read_excel("/data/yes24_best_genres.xlsx")
 
-    st.info("""
-    💡 **분석 포인트**
-    - 차량무게가 무거울수록 연비가 낮아지는 경향이 있습니다.""")
+    prices = df_prices["price"]
+    genres = df_genres["genre"].value_counts()
 
-    st.markdown("---")
-    # 연도별 평균 연비 변화
-    st.subheader("📆 연도별 평균 연비 변화")
-    year_mpg = df.groupby("year")["mpg"].mean().reset_index()
-    fig4 = px.line(
-        year_mpg,
-        x="year",
-        y="mpg",
-        title="연도별 평균 연비 추이",
-        markers=True
-    )
-    st.plotly_chart(fig4, width='stretch')
+    df = df_genres.merge(df_prices, on="book_id")
 
-    st.markdown("---")
+    total = genres.sum()
+    ratio = genres / total
 
-    st.info("""
-    💡 **분석 포인트**
-    - 연도별 평균 연비가 점차 개선되는 추세를 확인할 수 있습니다.""")
+    # 5% 이상 / 미만 분리
+    main_genres = genres[ratio >= 0.05]
+    others = genres[ratio < 0.05].sum()
 
-def cars_predict(df):
-    #머신러닝 모델을 활용하여 자동차의 연비를 예측하는 기능을 구현한다. 
-    st.header("🤖 자동차 연비 예측")
-    st.write("선형회귀(Linear Regression) 모델을 활용하여 자동차의 연비(mpg)를 예측합니다.")
+    # 기타 추가
+    if others > 0:
+        main_genres = pd.concat(
+            [main_genres, pd.Series({"기타": others})]
+        )
 
-    # 입력 변수(X)와 목표 변수(y) 설정
-    X = df[["cylinders", "cubicinches", "hp", "weightlbs", "time-to-60"]]
-    y = df["mpg"]
+    # 크기 기준 내림차순 정렬
+    main_genres = main_genres.sort_values(ascending=False)
+    # 크롤링 날짜 
+    date = sorted(df_prices["crawl_date"].unique())
 
-    # 학습 데이터와 테스트 데이터 분리
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    col_left, col_center, col_right = st.columns(3)
+    # 왼쪽: 장르별 개수 파이 차트
+    with col_left:
+        st.subheader("장르별 도서 개수 분포")
 
-    # 모델 학습
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+        fig1, ax1 = plt.subplots(figsize = (4,4), dpi = 200)
+        ax1.pie(
+            main_genres.values,
+            labels=main_genres.index,
+            autopct="%1.1f%%",
+            startangle=90
+        )
+        for text in ax1.texts:
+            text.set_fontsize(7)
+        ax1.axis("equal")
+        plt.tight_layout()
+        st.pyplot(fig1)
 
-    # 예측 성능 표시
-    y_pred = model.predict(X_test)
-    score = r2_score(y_test, y_pred)
-    st.write(f"📊 모델 성능 (R²): **{score:.3f}**")
+    # 중앙: 전체 가격 분포
+    with col_center:
+        st.subheader("전체 도서 가격 분포")
+        # 빈 공간 (높이 조절용)
+        st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+        fig2, ax2 = plt.subplots()
+        ax2.hist(prices, bins=10)
+        ax2.set_xlabel("가격 (원)")
+        ax2.set_ylabel("도서 수")
 
-    # 사용자 입력
-    st.subheader("🚗 자동차 정보 입력")
-    cylinders = st.slider("실린더 수 (cylinders)", 3, 12, 6)
-    cubicinches = st.slider("배기량 (cubicinches)", 60, 500, 200)
-    hp = st.slider("마력 (horsepower)", 50, 400, 150)
-    weightlbs = st.slider("무게 (weightlbs)", 1500, 6000, 3000)
-    time_to_60 = st.slider("시속 60마일 도달 시간 (초)", 4.0, 20.0, 10.0)
+        st.pyplot(fig2)
+        
 
-    # 입력값으로 예측 수행
-    input_data = pd.DataFrame({
-        "cylinders": [cylinders],
-        "cubicinches": [cubicinches],
-        "hp": [hp],
-        "weightlbs": [weightlbs],
-        "time-to-60": [time_to_60]
-    })
+    # 오른쪽: 장르별 가격 분포
+    with col_right:
+        st.subheader("선택한 장르의 가격 분포")        
+        
+        fig3, ax3 = plt.subplots()
+        ax3.hist(
+            df[df["genre"] == st.session_state.get("selected_genre", genres.index[0])]["price"],
+            bins=8
+        )
+        ax3.set_xlabel("가격")
+        ax3.set_ylabel("도서 수")
+        ax3.set_title(f"{st.session_state.get("selected_genre", genres.index[0])} 장르 가격 분포")
+        st.pyplot(fig3)
 
-    mpg_pred = model.predict(input_data)[0]
-    st.success(f"예상 연비: **{mpg_pred:.2f} mpg** 🚘")
-
-def load_data():
-    df = pd.read_csv("./data/cars.csv")
-    return df
-
-def main():
-    st.set_page_config(page_title="자동차 연비 대시보드", layout="wide")
-    
-    df = load_data()
-
-    # --- 사이드바 메뉴 ---
-    menu = st.sidebar.radio(
-        "대시보드 메뉴",
-        ["홈", "탐색적 자료분석(EDA)", "연비 예측"]
-    )
-
-    # --- 홈 화면 ---
-    if menu == "홈":
-        cars_home()
-
-    # --- 탐색적 자료분석 화면 ---
-    elif menu == "탐색적 자료분석(EDA)":
-        cars_EDA(df)
-
-    # --- 연비 예측 화면 ---
-    elif menu == "연비 예측":
-        cars_predict(df) 
-
-if __name__ == "__main__":
-    main()
+        selected_genre = st.selectbox(
+            "장르 선택",
+            main_genres.index[1:],
+            key="selected_genre"
+        )
+        
+    # 그래프 별 설명
+    txt_left, txt_center, txt_right = st.columns(3)
+    with txt_left:
+        st.write('''
+                본 파이 차트는 YES24 국내도서 베스트셀러 상위 240개 중 나이제한 상품을 제외한 목록에 포함된 도서들의 장르 분포를 시각화한 것이다. 
+                각 장르는 해당 장르에 속한 도서의 개수를 기준으로 구성되었으며, 전체 대비 비율을 통해 베스트셀러 시장에서 어떤 장르가 상대적으로 높은 비중을 차지하는지를 파악할 수 있다.
+                다양한 장르를 가진 도서는 각 장르에 모두 포함하였다.
+                또한 전체 비중의 5% 미만을 차지하는 소수 장르는 ‘기타’ 항목으로 통합하여 시각적 가독성을 향상시켰으며, 장르 비중이 큰 순서대로 정렬함으로써 주요 장르의 상대적 중요도를 직관적으로 확인할 수 있도록 하였다.
+                 ''')
+    with txt_center:
+        st.write('''
+                본 그래프는 YES24 베스트셀러 도서들의 전체 가격 분포를 나타낸 것이다. 도서 가격을 일정한 구간으로 나누어 각 가격대에 속하는 도서의 개수를 집계함으로써, 베스트셀러 도서들이 주로 형성되는 가격 범위를 확인할 수 있다.
+                이를 통해 베스트셀러 시장에서 소비자가 선호하는 가격대가 어느 구간에 집중되어 있는지 파악할 수 있다.
+                 ''')  
+    with txt_right:
+        st.write('''
+                본 그래프는 사용자가 선택한 특정 장르에 대해 해당 장르에 속한 도서들의 가격 분포를 시각화한 것이다. 
+                전체 가격 분포와 달리, 장르별 가격 특성을 개별적으로 분석할 수 있도록 설계되었다.
+                이를 통해 특정 장르의 가격대가 분포되어있는 구조를 파악할 수 있으며, 장르별 출판 및 소비 특성의 차이를 분석하는 데 활용할 수 있다.
+                 ''')
+        
+    st.write(f"{date[0]} 기준")
+except Exception as e:
+    print(e)
+    st.write("아직 분석 전입니다..")
