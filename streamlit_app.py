@@ -1,12 +1,12 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-#from matplotlib import rc, font_manager
+from matplotlib import rc, font_manager
 import pandas as pd
 
 # 폰트 설정
-#font_path = "C:/Windows/Fonts/malgun.ttf"  # Windows 기준
-#font_name = font_manager.FontProperties(fname=font_path).get_name()
-#rc('font', family=font_name)
+font_path = "./malgun.ttf"  # Windows 기준
+font_name = font_manager.FontProperties(fname=font_path).get_name()
+rc('font', family=font_name)
 
 # Streamlit 기본 설정
 st.set_page_config(layout="wide")
@@ -68,7 +68,7 @@ try:
     # 중앙: 전체 가격 분포
     with col_center:
         st.subheader("전체 도서 가격 분포")
-        
+
         fig2, ax2 = plt.subplots()
         ax2.hist(prices, bins=10)
         ax2.set_xlabel("가격 (원)")
