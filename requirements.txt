@@ -1,6 +1,6 @@
+selenium
+time
 streamlit
-pandas
 matplotlib
-openpyxl
-plotly
-scikit-learn
+pandas
+datetime

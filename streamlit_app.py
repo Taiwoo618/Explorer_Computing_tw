@@ -4,7 +4,6 @@ from selenium.webdriver.common.alert import Alert
 import time
 import streamlit as st
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib import rc, font_manager
 import pandas as pd
 from datetime import datetime
