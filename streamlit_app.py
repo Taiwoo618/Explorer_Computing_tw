@@ -5,8 +5,9 @@ import pandas as pd
 
 # 폰트 설정
 font_path = "./malgun.ttf"  # Windows 기준
-font_name = font_manager.FontProperties(fname=font_path).get_name()
-rc('font', family=font_name)
+font_prop = font_manager.FontProperties(fname=font_path)
+#rc('font', family=font_name)
+plt.rcParams["axes.unicode_minus"] = False
 
 # Streamlit 기본 설정
 st.set_page_config(layout="wide")
@@ -57,7 +58,8 @@ try:
             main_genres.values,
             labels=main_genres.index,
             autopct="%1.1f%%",
-            startangle=90
+            startangle=90,
+            textprops = {"fontproperties": font_prop}
         )
         for text in ax1.texts:
             text.set_fontsize(7)
@@ -71,8 +73,8 @@ try:
 
         fig2, ax2 = plt.subplots()
         ax2.hist(prices, bins=10)
-        ax2.set_xlabel("가격 (원)")
-        ax2.set_ylabel("도서 수")
+        ax2.set_xlabel("가격 (원)", fontproperties=font_prop)
+        ax2.set_ylabel("도서 수", fontproperties=font_prop)
 
         st.pyplot(fig2)
         
@@ -86,9 +88,9 @@ try:
             df[df["genre"] == st.session_state.get("selected_genre", genres.index[0])]["price"],
             bins=8
         )
-        ax3.set_xlabel("가격")
-        ax3.set_ylabel("도서 수")
-        ax3.set_title(f"{st.session_state.get("selected_genre", genres.index[0])} 장르 가격 분포")
+        ax3.set_xlabel("가격", fontproperties=font_prop)
+        ax3.set_ylabel("도서 수", fontproperties=font_prop)
+        ax3.set_title(f"{st.session_state.get("selected_genre", genres.index[0])} 장르 가격 분포", fontproperties=font_prop)
         st.pyplot(fig3)
 
         selected_genre = st.selectbox(
