@@ -20,18 +20,10 @@ st.markdown("""
 하단 [분석]버튼을 통해 실시간으로 크롤링을 진행할 수 있다. 8~10분 정도 소요된다.
 """)
 
-analysis = st.button("분석")
-if analysis:
-    with st.spinner("크롤링 중입니다. 잠시만 기다려 주세요..."):
-        bestseller_anal()
-        st.session_state.data_loaded = True
-    st.success("크롤링 완료!")
-
-
 # 데이터 
 try:
-    df_prices = pd.read_excel("/data/yes24_best_prices.xlsx")
-    df_genres = pd.read_excel("/data/yes24_best_genres.xlsx")
+    df_prices = pd.read_excel("./data/yes24_best_prices.xlsx")
+    df_genres = pd.read_excel("./data/yes24_best_genres.xlsx")
 
     prices = df_prices["price"]
     genres = df_genres["genre"].value_counts()
