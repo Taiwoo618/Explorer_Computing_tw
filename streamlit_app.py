@@ -68,8 +68,7 @@ try:
     # 중앙: 전체 가격 분포
     with col_center:
         st.subheader("전체 도서 가격 분포")
-        # 빈 공간 (높이 조절용)
-        st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+        
         fig2, ax2 = plt.subplots()
         ax2.hist(prices, bins=10)
         ax2.set_xlabel("가격 (원)")
