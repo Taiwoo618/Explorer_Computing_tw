@@ -23,7 +23,7 @@ st.markdown("""
 try:
     df_prices = pd.read_excel("./data/yes24_best_prices.xlsx")
     df_genres = pd.read_excel("./data/yes24_best_genres.xlsx")
-    print("fuck")
+
     prices = df_prices["price"]
     genres = df_genres["genre"].value_counts()
 
@@ -89,7 +89,7 @@ try:
         )
         ax3.set_xlabel("가격", fontproperties=font_prop)
         ax3.set_ylabel("도서 수", fontproperties=font_prop)
-        ax3.set_title(f"{st.session_state.get("selected_genre", genres.index[0])} 장르 가격 분포", fontproperties=font_prop)
+        ax3.set_title(f'{st.session_state.get("selected_genre", genres.index[0])} 장르 가격 분포', fontproperties=font_prop)
         st.pyplot(fig3)
 
         selected_genre = st.selectbox(
