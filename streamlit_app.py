@@ -121,5 +121,5 @@ try:
         
     st.write(f"{date[0]} 기준")
 except Exception as e:
-    print(e)
+    st.error(e)
     st.write("아직 분석 전입니다..")
