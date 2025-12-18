@@ -23,7 +23,7 @@ st.markdown("""
 try:
     df_prices = pd.read_excel("./data/yes24_best_prices.xlsx")
     df_genres = pd.read_excel("./data/yes24_best_genres.xlsx")
-
+    print("fuck")
     prices = df_prices["price"]
     genres = df_genres["genre"].value_counts()
 
